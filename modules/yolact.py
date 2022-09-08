@@ -296,7 +296,7 @@ class Yolact(nn.Module):
 
       # mask assembly by linear combination
       # @ means dot product
-      # 进行了归一化,变成了概率值, 注意这里proto_p(136,136,32)和(9,32)进行了点乘。然后进行sigmoid处理。
+      # Note:进行了归一化,变成了概率值, 注意这里proto_p(136,136,32)和(9,32)进行了点乘。然后进行sigmoid处理。
       mask_p = torch.sigmoid(proto_p[i] @ pos_coef.t())
       # pos_anchor_box:正样本anchor对应的坐标值
       # mask_p: 把预测的mask区域给crop出来, 然后再次贴合到图里面,最终mask_p里面只是含有0和1的二值图。这一步相当于构造训练用的mask

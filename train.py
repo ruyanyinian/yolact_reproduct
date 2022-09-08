@@ -115,7 +115,7 @@ try:  # try-except can shut down all processes after Ctrl + C.
         masks = [mask.cuda().detach() for mask in masks]
 
       with timer.counter('for+loss'):
-        loss_c, loss_b, loss_m, loss_s = net(images, targets, masks)
+        loss_c, loss_b, loss_m, loss_s = net(images, targets, masks) # 他里面有2个target
 
         if cfg.cuda:
           # use .all_reduce() to get the summed loss from all GPUs

@@ -140,24 +140,24 @@ class Yolact(nn.Module):
 
   def forward(self, img, box_classes=None, masks_gt=None):
     outs = self.backbone(img)
-    outs = self.fpn(outs[1:4])
-    proto_out = self.proto_net(outs[0])  # feature map P3
-    proto_out = proto_out.permute(0, 2, 3, 1).contiguous()
+    outs = self.fpn(outs[1:4]) # outs = [(1,256,68,68), (1,256,34,43), (1,256,17,17), (1,256,9,9), (1,256,5,5)]
+    proto_out = self.proto_net(outs[0])  # feature map P3, outs[0] = (1,256,68,68), proto_out=(1,32,136,136)
+    proto_out = proto_out.permute(0, 2, 3, 1).contiguous() # (1,32,136,136)=>(1,136,136,32)
 
     class_pred, box_pred, coef_pred = [], [], []
 
-    for aa in outs:
+    for aa in outs: # 对每一个fpn层进行遍历
       class_p, box_p, coef_p = self.prediction_layers(aa)
-      class_pred.append(class_p)
-      box_pred.append(box_p)
-      coef_pred.append(coef_p)
+      class_pred.append(class_p) # class_pred = [(1,13872,81), (1,3468,81), (1,687,81), (1,243,81), (1,75,81)]
+      box_pred.append(box_p) # class_pred = [(1,13872,4), (1,3468,4), (1,687,4), (1,243,4), (1,75,4)]
+      coef_pred.append(coef_p) # class_pred = [(1,13872,32), (1, 3468, 32), (1,687,32), (1,243,32), (1,75,32)]
 
-    class_pred = torch.cat(class_pred, dim=1)
-    box_pred = torch.cat(box_pred, dim=1)
-    coef_pred = torch.cat(coef_pred, dim=1)
+    class_pred = torch.cat(class_pred, dim=1) # (1,18525,81)
+    box_pred = torch.cat(box_pred, dim=1) # (1,18525,4)
+    coef_pred = torch.cat(coef_pred, dim=1) # (1,18525,32)
 
     if self.training:
-      seg_pred = self.semantic_seg_conv(outs[0])
+      seg_pred = self.semantic_seg_conv(outs[0]) # (1,80,68,68)
       return self.compute_loss(class_pred, box_pred, coef_pred, proto_out, seg_pred, box_classes, masks_gt)
     else:
       class_pred = F.softmax(class_pred, -1)

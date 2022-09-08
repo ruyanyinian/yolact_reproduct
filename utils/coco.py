@@ -25,7 +25,7 @@ def train_collate(batch):
     targets.append(torch.tensor(sample[1], dtype=torch.float32))
     masks.append(torch.tensor(sample[2], dtype=torch.float32))
 
-  return torch.stack(imgs, 0), targets, masks
+  return torch.stack(imgs, 0), targets, masks # 两张mask
 
 
 def val_collate(batch):
@@ -108,7 +108,7 @@ class COCODetection(data.Dataset):
         assert masks.shape == (boxes.shape[0], height, width), 'Unmatched annotations.'
 
         if self.mode == 'train':
-          img, masks, boxes, labels = train_aug(img, masks, boxes, labels, self.cfg.img_size)
+          img, masks, boxes, labels = train_aug(img, masks, boxes, labels, self.cfg.img_size) # 进行一些数据的预处理操作
           if img is None:
             return None, None, None
           else:

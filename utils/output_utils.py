@@ -4,7 +4,8 @@ from utils.box_utils import crop, box_iou, box_iou_numpy, crop_numpy
 import torch
 import numpy as np
 from config import COLORS
-from cython_nms import nms as cnms
+# from cython_nms import nms as cnms
+from torchvision.ops import nms as cnms
 import pdb
 
 
@@ -101,7 +102,7 @@ def traditional_nms(boxes, masks, scores, cfg):
             continue
 
         preds = torch.cat([boxes[conf_mask], cls_scores[:, None]], dim=1).cpu().numpy()
-        keep = cnms(preds, cfg.nms_iou_thre)
+        keep = cnms(preds, cls_scores, cfg.nms_iou_thre) # (bug)这里可能出错
         keep = torch.tensor(keep, device=boxes.device).long()
 
         idx_lst.append(idx[keep])

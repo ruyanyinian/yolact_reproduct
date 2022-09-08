@@ -67,187 +67,187 @@ norm_mean = np.array([103.94, 116.78, 123.68], dtype=np.float32)
 norm_std = np.array([57.38, 57.12, 58.40], dtype=np.float32)
 
 
-class res101_coco:
-    def __init__(self, args):
-        self.mode = args.mode
-        self.cuda = args.cuda
-        self.gpu_id = args.gpu_id
-        assert args.img_size % 32 == 0, f'Img_size must be divisible by 32, got {args.img_size}.'
-        self.img_size = args.img_size
-        self.class_names = COCO_CLASSES
-        self.num_classes = len(COCO_CLASSES) + 1
-        self.continuous_id = COCO_LABEL_MAP
-        self.scales = [int(self.img_size / 544 * aa) for aa in (24, 48, 96, 192, 384)]
-        self.aspect_ratios = [1, 1 / 2, 2]
+class res101_coco(object):
+  def __init__(self, args):
+    self.mode = args.mode
+    self.cuda = args.cuda
+    self.gpu_id = args.gpu_id
+    assert args.img_size % 32 == 0, f'Img_size must be divisible by 32, got {args.img_size}.'
+    self.img_size = args.img_size
+    self.class_names = COCO_CLASSES
+    self.num_classes = len(COCO_CLASSES) + 1
+    self.continuous_id = COCO_LABEL_MAP
+    self.scales = [int(self.img_size / 544 * aa) for aa in (24, 48, 96, 192, 384)]
+    self.aspect_ratios = [1, 1 / 2, 2]
 
-        if self.mode == 'train':
-            self.weight = args.resume if args.resume else 'weights/backbone_res101.pth'
-        else:
-            self.weight = args.weight
+    if self.mode == 'train':
+      self.weight = args.resume if args.resume else 'weights/backbone_res101.pth'
+    else:
+      self.weight = args.weight
 
-        self.data_root = '/home/feiyu/Data/'
+    self.data_root = '/Users/qinyu/data/'
 
-        if self.mode == 'train':
-            self.train_imgs = self.data_root + 'coco2017/train2017/'
-            self.train_ann = self.data_root + 'coco2017/annotations/instances_train2017.json'
-            self.train_bs = args.train_bs
-            self.bs_per_gpu = args.bs_per_gpu
-            self.val_interval = args.val_interval
+    if self.mode == 'train':
+      self.train_imgs = self.data_root + 'coco/train2017/'
+      self.train_ann = self.data_root + 'coco/annotations/instances_train2017.json'
+      self.train_bs = args.train_bs
+      self.bs_per_gpu = args.bs_per_gpu
+      self.val_interval = args.val_interval
 
-            self.bs_factor = self.train_bs / 8
-            self.lr = 0.001 * self.bs_factor
-            self.warmup_init = self.lr * 0.1
-            self.warmup_until = 500  # If adapted with bs_factor, inifinte loss may appear.
-            self.lr_steps = tuple([int(aa / self.bs_factor) for aa in (0, 280000, 560000, 620000, 680000)])
+      self.bs_factor = self.train_bs / 8
+      self.lr = 0.001 * self.bs_factor
+      self.warmup_init = self.lr * 0.1
+      self.warmup_until = 500  # If adapted with bs_factor, inifinte loss may appear.
+      self.lr_steps = tuple([int(aa / self.bs_factor) for aa in (0, 280000, 560000, 620000, 680000)])
 
-            self.pos_iou_thre = 0.5
-            self.neg_iou_thre = 0.4
+      self.pos_iou_thre = 0.5
+      self.neg_iou_thre = 0.4
 
-            self.conf_alpha = 1
-            self.bbox_alpha = 1.5
-            self.mask_alpha = 6.125
-            self.semantic_alpha = 1
+      self.conf_alpha = 1
+      self.bbox_alpha = 1.5
+      self.mask_alpha = 6.125
+      self.semantic_alpha = 1
 
-            # The max number of masks to train for one image.
-            self.masks_to_train = 100
+      # The max number of masks to train for one image.
+      self.masks_to_train = 100
 
-        if self.mode in ('train', 'val'):
-            self.val_imgs = self.data_root + 'coco2017/val2017/'
-            self.val_ann = self.data_root + 'coco2017/annotations/instances_val2017.json'
-            self.val_bs = 1
-            self.val_num = args.val_num
-            self.coco_api = args.coco_api
+    if self.mode in ('train', 'val'):
+      self.val_imgs = self.data_root + 'coco2017/val2017/'
+      self.val_ann = self.data_root + 'coco2017/annotations/instances_val2017.json'
+      self.val_bs = 1
+      self.val_num = args.val_num
+      self.coco_api = args.coco_api
 
-        self.traditional_nms = args.traditional_nms
-        self.nms_score_thre = 0.05
-        self.nms_iou_thre = 0.5
-        self.top_k = 200
-        self.max_detections = 100
+    self.traditional_nms = args.traditional_nms
+    self.nms_score_thre = 0.05
+    self.nms_iou_thre = 0.5
+    self.top_k = 200
+    self.max_detections = 100
 
-        if self.mode == 'detect':
-            for k, v in vars(args).items():
-                self.__setattr__(k, v)
+    if self.mode == 'detect':
+      for k, v in vars(args).items():
+        self.__setattr__(k, v)
 
-    def print_cfg(self):
-        print()
-        print('-' * 30 + self.__class__.__name__ + '-' * 30)
-        for k, v in vars(self).items():
-            if k not in ('continuous_id', 'data_root', 'cfg'):
-                print(f'{k}: {v}')
-        print()
+  def print_cfg(self):
+    print()
+    print('-' * 30 + self.__class__.__name__ + '-' * 30)
+    for k, v in vars(self).items():
+      if k not in ('continuous_id', 'data_root', 'cfg'):
+        print(f'{k}: {v}')
+    print()
 
 
 class res50_coco(res101_coco):
-    def __init__(self, args):
-        super().__init__(args)
-        if self.mode == 'train':
-            self.weight = args.resume if args.resume else 'weights/backbone_res50.pth'
-        else:
-            self.weight = args.weight
+  def __init__(self, args):
+    super().__init__(args)
+    if self.mode == 'train':
+      self.weight = args.resume if args.resume else 'weights/backbone_res50.pth'
+    else:
+      self.weight = args.weight
 
 
 class swin_tiny_coco(res101_coco):
-    def __init__(self, args):
-        super().__init__(args)
-        if self.mode == 'train':
-            self.weight = args.resume if args.resume else 'weights/swin_tiny.pth'
-            self.lr = 0.00005 * self.bs_factor
-        else:
-            self.weight = args.weight
+  def __init__(self, args):
+    super().__init__(args)
+    if self.mode == 'train':
+      self.weight = args.resume if args.resume else 'weights/swin_tiny.pth'
+      self.lr = 0.00005 * self.bs_factor
+    else:
+      self.weight = args.weight
 
 
 class res50_pascal(res101_coco):
-    def __init__(self, args):
-        super().__init__(args)
-        self.class_names = PASCAL_CLASSES
-        self.num_classes = len(PASCAL_CLASSES) + 1
-        self.continuous_id = {(aa + 1): (aa + 1) for aa in range(self.num_classes - 1)}
-        self.use_square_anchors = False
-        if self.mode == 'train':
-            self.weight = args.resume if args.resume else 'weights/backbone_res50.pth'
-        else:
-            self.weight = args.weight
+  def __init__(self, args):
+    super().__init__(args)
+    self.class_names = PASCAL_CLASSES
+    self.num_classes = len(PASCAL_CLASSES) + 1
+    self.continuous_id = {(aa + 1): (aa + 1) for aa in range(self.num_classes - 1)}
+    self.use_square_anchors = False
+    if self.mode == 'train':
+      self.weight = args.resume if args.resume else 'weights/backbone_res50.pth'
+    else:
+      self.weight = args.weight
 
-        if self.mode == 'train':
-            self.train_imgs = self.data_root + 'pascal_sbd/img'
-            self.train_ann = self.data_root + 'pascal_sbd/pascal_sbd_train.json'
-            self.lr_steps = tuple([int(aa / self.bs_factor) for aa in (0, 60000, 100000, 120000)])
-            self.scales = [int(self.img_size / 544 * aa) for aa in (32, 64, 128, 256, 512)]
+    if self.mode == 'train':
+      self.train_imgs = self.data_root + 'pascal_sbd/img'
+      self.train_ann = self.data_root + 'pascal_sbd/pascal_sbd_train.json'
+      self.lr_steps = tuple([int(aa / self.bs_factor) for aa in (0, 60000, 100000, 120000)])
+      self.scales = [int(self.img_size / 544 * aa) for aa in (32, 64, 128, 256, 512)]
 
-        if self.mode in ('train', 'val'):
-            self.val_imgs = self.data_root + 'pascal_sbd/img'
-            self.val_ann = self.data_root + 'pascal_sbd/pascal_sbd_val.json'
+    if self.mode in ('train', 'val'):
+      self.val_imgs = self.data_root + 'pascal_sbd/img'
+      self.val_ann = self.data_root + 'pascal_sbd/pascal_sbd_val.json'
 
 
 class res101_custom(res101_coco):
-    def __init__(self, args):
-        super().__init__(args)
-        self.class_names = CUSTOM_CLASSES
-        self.num_classes = len(self.class_names) + 1
-        self.continuous_id = {(aa + 1): (aa + 1) for aa in range(self.num_classes - 1)}
+  def __init__(self, args):
+    super().__init__(args)
+    self.class_names = CUSTOM_CLASSES
+    self.num_classes = len(self.class_names) + 1
+    self.continuous_id = {(aa + 1): (aa + 1) for aa in range(self.num_classes - 1)}
 
-        if self.mode == 'train':
-            self.train_imgs = 'custom_dataset/'
-            self.train_ann = 'custom_dataset/custom_ann.json'
-            self.warmup_until = 100  # just an example
-            self.lr_steps = (0, 1200, 1600, 2000)  # just an example
+    if self.mode == 'train':
+      self.train_imgs = 'custom_dataset/'
+      self.train_ann = 'custom_dataset/custom_ann.json'
+      self.warmup_until = 100  # just an example
+      self.lr_steps = (0, 1200, 1600, 2000)  # just an example
 
-        if self.mode in ('train', 'val'):
-            self.val_imgs = ''  # decide by yourself
-            self.val_ann = ''
+    if self.mode in ('train', 'val'):
+      self.val_imgs = ''  # decide by yourself
+      self.val_ann = ''
 
 
 class res50_custom(res101_coco):
-    def __init__(self, args):
-        super().__init__(args)
-        self.class_names = CUSTOM_CLASSES
-        self.num_classes = len(self.class_names) + 1
-        self.continuous_id = {(aa + 1): (aa + 1) for aa in range(self.num_classes - 1)}
-        if self.mode == 'train':
-            self.weight = args.resume if args.resume else 'weights/backbone_res50.pth'
-        else:
-            self.weight = args.weight
+  def __init__(self, args):
+    super().__init__(args)
+    self.class_names = CUSTOM_CLASSES
+    self.num_classes = len(self.class_names) + 1
+    self.continuous_id = {(aa + 1): (aa + 1) for aa in range(self.num_classes - 1)}
+    if self.mode == 'train':
+      self.weight = args.resume if args.resume else 'weights/backbone_res50.pth'
+    else:
+      self.weight = args.weight
 
-        if self.mode == 'train':
-            self.train_imgs = 'custom_dataset/'
-            self.train_ann = 'custom_dataset/custom_ann.json'
-            self.warmup_until = 100  # just an example
-            self.lr_steps = (0, 1200, 1600, 2000)  # just an example
+    if self.mode == 'train':
+      self.train_imgs = 'custom_dataset/'
+      self.train_ann = 'custom_dataset/custom_ann.json'
+      self.warmup_until = 100  # just an example
+      self.lr_steps = (0, 1200, 1600, 2000)  # just an example
 
-        if self.mode in ('train', 'val'):
-            self.val_imgs = ''  # decide by yourself
-            self.val_ann = ''
+    if self.mode in ('train', 'val'):
+      self.val_imgs = ''  # decide by yourself
+      self.val_ann = ''
 
 
 def get_config(args, mode):
-    args.cuda = torch.cuda.is_available()
-    args.mode = mode
+  args.cuda = torch.cuda.is_available()
+  args.mode = mode
 
-    if args.cuda:
-        args.gpu_id = os.environ.get('CUDA_VISIBLE_DEVICES') if os.environ.get('CUDA_VISIBLE_DEVICES') else '0'
-        if args.mode == 'train':
-            torch.cuda.set_device(args.local_rank)
-            dist.init_process_group(backend='nccl', init_method='env://')
+  if args.cuda:
+    args.gpu_id = os.environ.get('CUDA_VISIBLE_DEVICES') if os.environ.get('CUDA_VISIBLE_DEVICES') else '0'
+    if args.mode == 'train':
+      torch.cuda.set_device(args.local_rank)
+      dist.init_process_group(backend='nccl', init_method='env://')
 
-            # Only launched by torch.distributed.launch, 'WORLD_SIZE' can be add to environment variables.
-            num_gpus = int(os.environ['WORLD_SIZE'])
-            assert args.train_bs % num_gpus == 0, 'Total training batch size must be divisible by GPU number.'
-            args.bs_per_gpu = int(args.train_bs / num_gpus)
-        else:
-            assert args.gpu_id.isdigit(), f'Only one GPU can be used in val/detect mode, got {args.gpu_id}.'
+      # Only launched by torch.distributed.launch, 'WORLD_SIZE' can be add to environment variables.
+      num_gpus = int(os.environ['WORLD_SIZE'])
+      assert args.train_bs % num_gpus == 0, 'Total training batch size must be divisible by GPU number.'
+      args.bs_per_gpu = int(args.train_bs / num_gpus)
     else:
-        args.gpu_id = None
-        if args.mode == 'train':
-            args.bs_per_gpu = args.train_bs
-            print('\n-----No GPU found, training on CPU.-----')
-        else:
-            print('\n-----No GPU found, validate on CPU.-----')
+      assert args.gpu_id.isdigit(), f'Only one GPU can be used in val/detect mode, got {args.gpu_id}.'
+  else:
+    args.gpu_id = None
+    if args.mode == 'train':
+      args.bs_per_gpu = args.train_bs
+      print('\n-----No GPU found, training on CPU.-----')
+    else:
+      print('\n-----No GPU found, validate on CPU.-----')
 
-    cfg = globals()[args.cfg](args)
+  cfg = globals()[args.cfg](args)
 
-    if not args.cuda or args.mode != 'train':
-        cfg.print_cfg()
-    elif dist.get_rank() == 0:
-        cfg.print_cfg()
+  if not args.cuda or args.mode != 'train':
+    cfg.print_cfg()
+  elif dist.get_rank() == 0:
+    cfg.print_cfg()
 
-    return cfg
+  return cfg

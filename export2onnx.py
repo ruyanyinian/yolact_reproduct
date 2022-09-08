@@ -10,7 +10,7 @@ from config import get_config
 from modules.yolact import Yolact
 
 parser = argparse.ArgumentParser(description='YOLACT Detection.')
-parser.add_argument('--weight', default='weights/best_30.5_res101_coco_392000.pth', type=str)
+parser.add_argument('--weight', default=None, type=str)
 parser.add_argument('--opset', type=int, default=12, help='The opset version for transporting to ONNX.')
 parser.add_argument('--img_size', type=int, default=544, help='The image size for validation.')
 parser.add_argument('--traditional_nms', default=False, action='store_true', help='Whether to use traditional nms.')

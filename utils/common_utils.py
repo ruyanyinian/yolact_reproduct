@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pycocotools
 import json
-from terminaltables import AsciiTable
+# from terminaltables import AsciiTable
 from collections import OrderedDict
 
 from utils.box_utils import box_iou, mask_iou

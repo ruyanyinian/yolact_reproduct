@@ -75,10 +75,10 @@ if cfg.cuda:
   num_gpu = dist.get_world_size()
 
   net = DDP(net.cuda(), [args.local_rank], output_device=args.local_rank, broadcast_buffers=True)
-  train_sampler = DistributedSampler(dataset, shuffle=True)
+  train_sampler = DistributedSampler(dataset, shuffle=False)
 
 # shuffle must be False if sampler is specified
-data_loader = data.DataLoader(dataset, batch_size=1, num_workers=0, shuffle=(train_sampler is None),
+data_loader = data.DataLoader(dataset, batch_size=1, num_workers=0, shuffle=False,
                               collate_fn=train_collate, pin_memory=False, sampler=train_sampler)
 # data_loader = data.DataLoader(dataset, cfg.bs_per_gpu, num_workers=0, shuffle=False,
 #                               collate_fn=train_collate, pin_memory=True)

@@ -163,7 +163,7 @@ class Yolact(nn.Module):
     coef_pred = torch.cat(coef_pred, dim=1) # (1,18525,32) 这个算出来18525个anchor对应的一维向量(32,)的介于0~1的加权系数
 
     if self.training:
-      seg_pred = self.semantic_seg_conv(outs[0]) # (1,80,68,68)
+      seg_pred = self.semantic_seg_conv(outs[0]) # Note: 这里分出来一个做语义的监督Note:(1,80,68,68)
       return self.compute_loss(class_pred, box_pred, coef_pred, proto_out, seg_pred, box_classes, masks_gt)
     else:
       class_pred = F.softmax(class_pred, -1)

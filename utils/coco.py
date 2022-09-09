@@ -25,7 +25,7 @@ def train_collate(batch):
     targets.append(torch.tensor(sample[1], dtype=torch.float32))
     masks.append(torch.tensor(sample[2], dtype=torch.float32))
 
-  return torch.stack(imgs, 0), targets, masks # 两张mask
+  return torch.stack(imgs, 0), targets, masks
 
 
 def val_collate(batch):
@@ -67,6 +67,7 @@ class COCODetection(data.Dataset):
       return img_normed, img_origin, img_name.split(osp.sep)[-1]
     else: # 如果是train的走这个分支
       img_id = self.ids[index]
+      img_id = 395
       ann_ids = self.coco.getAnnIds(imgIds=img_id)
 
       # 'target' includes {'segmentation', 'area', iscrowd', 'image_id', 'bbox', 'category_id'}
@@ -76,15 +77,16 @@ class COCODetection(data.Dataset):
       file_name = self.coco.loadImgs(img_id)[0]['file_name']
 
       img_path = osp.join(self.image_path, file_name)
+      img_path = "/Users/qinyu/data/coco/train2017/000000000395.jpg"
       assert osp.exists(img_path), f'Image path does not exist: {img_path}'
 
       img = cv2.imread(img_path)
-      height, width, _ = img.shape  # 439, 640
+      height, width, _ = img.shape  # 580,640
 
       assert len(target) > 0, 'No annotation in this image!'
       box_list, mask_list, label_list = [], [], []
-
-      for aa in target: # 遍历图像中每一个待检测物体(bbox和segmentation等等), 这里有2个target所以需要遍历2次
+      # 遍历图像中每一个待检测物体(bbox和segmentation等等), 这里面有13个带检测物体, 所以需要遍历13次
+      for aa in target:
         bbox = aa['bbox']
 
         # When training, some boxes are wrong, ignore them.
@@ -93,26 +95,28 @@ class COCODetection(data.Dataset):
             continue
 
         x1y1x2y2_box = np.array([bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]])
-        category = self.continuous_id[aa['category_id']] - 1
+        category = self.continuous_id[aa['category_id']] - 1 # 这个就是类别值
 
-        box_list.append(x1y1x2y2_box)
+        box_list.append(x1y1x2y2_box) # 有13个box
         # coco.annToMask(aa)的作用是把mask值赋值给原始图像,也就是说假设图像是(640,480),他是np.uint8数据类型
         # 也就是把具体的mask值赋值到这个图像上, 其他的点是0
-        mask_list.append(self.coco.annToMask(aa))
+        mask_list.append(self.coco.annToMask(aa)) # 有13个mask
         label_list.append(category)
 
       if len(box_list) > 0:
-        boxes = np.array(box_list)  # (2,4)
-        masks = np.stack(mask_list, axis=0) # masks: (2,439,640)
-        labels = np.array(label_list) # [0, 38]
+        boxes = np.array(box_list)  # (13,4)
+        masks = np.stack(mask_list, axis=0) # masks: (13,580,640)
+        labels = np.array(label_list) # [67  0  0  0  0  67  0  0  0  0  0  0  0] 这个是label值
         assert masks.shape == (boxes.shape[0], height, width), 'Unmatched annotations.'
 
         if self.mode == 'train':
-          img, masks, boxes, labels = train_aug(img, masks, boxes, labels, self.cfg.img_size) # 进行一些数据的预处理操作
+          # 进行一些图像增强的操作, 并且图像的尺寸变成了544,544
+          # 这里mask 也是跟着增强了, 有它的纬度是(13,544,544),13是对应着13个target
+          img, masks, boxes, labels = train_aug(img, masks, boxes, labels, self.cfg.img_size)
           if img is None:
             return None, None, None
           else:
-            boxes = np.hstack((boxes, np.expand_dims(labels, axis=1)))
+            boxes = np.hstack((boxes, np.expand_dims(labels, axis=1)))  # (13, 5)
             return img, boxes, masks
         elif self.mode == 'val':
           img = val_aug(img, self.cfg.img_size)

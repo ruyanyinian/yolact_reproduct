@@ -55,21 +55,22 @@ def box_iou_numpy(box_a, box_b):
 
 
 def match(cfg, box_gt, anchors, class_gt):
-  # 将18525个anchor框转换成 [xmin, ymin, xmax, ymax].
+  # 将18525个anchor框转换成 [xmin, ymin, xmax, ymax]. decoded_priors(18525,4)
   decoded_priors = torch.cat((anchors[:, :2] - anchors[:, 2:] / 2, anchors[:, :2] + anchors[:, 2:] / 2), 1)
-  # box_gt是来自于annotation里面的。当前图像的annotation的target有两个, 所以box_gt=(2,4)
-  overlaps = box_iou(box_gt, decoded_priors)  # 对每一个anchor对gt_annotation做iOU计算,最后的shape是(2, 18525)
+  # box_gt是来自于annotation里面的。当前图像的annotation的target有13个, 所以box_gt=(13,4)
+  overlaps = box_iou(box_gt, decoded_priors)  # 对每一个anchor对gt_annotation做iOU计算,最后的shape是(13, 18525)
 
-  # 从18525个anchor框挑选出两个anchor框,这两个anchor框是和gt annotation做的最大的iOU值。gt_max_i=tensor([18355, 15863])
+  # 从18525个anchor框挑选出13个anchor框,这13个anchor框是和gt annotation做的最大的iOU值。这13个框的id是 gt_max_i= \
+  # tensor([ 7635, 18501, 17902, 17908, 18391,  7940, 15519, 17811, 15568, 15571,16140, 15616, 15778])
   _, gt_max_i = overlaps.max(1)
-  # overlaps.max(0):对每一个anchor来说, 这两个gt annotation中,哪一个gt annotation和当前的anchor产生最大的iOU
+  # overlaps.max(0):对每一个anchor来说, 这13 gt annotation中,哪一个gt annotation和当前的anchor产生最大的iOU
   # each_anchor_max就是具体的值是多少,而anchor_max_i是告诉你具体的哪一个GT annotation和当前的anchor产生最大的iOU
   each_anchor_max, anchor_max_i = overlaps.max(0)  # (num_achors, ) the max IoU for each anchor
 
   # For the max IoU anchor for each gt box, set its IoU to 2. This ensures that it won't be filtered
   # in the threshold step even if the IoU is under the negative threshold. This is because that we want
   # at least one anchor to match with each gt box or else we'd be wasting training data.
-  # 我们把最大的anchor框的iOU设置成2,以免被过滤
+  # 我们把最大的anchor框的max_iOU设置成2,以免被过滤
   each_anchor_max.index_fill_(0, gt_max_i, 2)
 
   # Set the index of the pair (anchor, gt) we set the overlap for above. 也就是把anchor和gt设置成一个pair
@@ -156,10 +157,10 @@ def crop(masks, boxes, padding=1):
       - masks should be a size [h, w, n] tensor of masks
       - boxes should be a size [n, 4] tensor of bbox coords in relative point form
   """
-  h, w, n = masks.size()  # 136, 136, n=2
-  # 对9个正样本的anchor框的相对路径转换成(136,136)下的绝对路径
-  x1, x2 = sanitize_coordinates(boxes[:, 0], boxes[:, 2], w, padding)
-  y1, y2 = sanitize_coordinates(boxes[:, 1], boxes[:, 3], h, padding)
+  h, w, n = masks.size()  # 136, 136, n=30
+  # 对30个正样本的anchor框的相对路径转换成(136,136)下的绝对路径
+  x1, x2 = sanitize_coordinates(boxes[:, 0], boxes[:, 2], w, padding) # x1(30,) x2(30,)
+  y1, y2 = sanitize_coordinates(boxes[:, 1], boxes[:, 3], h, padding) # y1(30,) y2(30,)
 
   rows = torch.arange(w, device=masks.device, dtype=x1.dtype).view(1, -1, 1).expand(h, w, n)
   cols = torch.arange(h, device=masks.device, dtype=x1.dtype).view(-1, 1, 1).expand(h, w, n)

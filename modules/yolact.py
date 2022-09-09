@@ -210,8 +210,10 @@ class Yolact(nn.Module):
     # pos_bool(1,18525), anchor_max_i(1,18525),
     # coef_p(1,18525,32), proto_p(1,136,136,32),
     # mask_gt(13, 544,544), 一共有13个target anchor_max_gt(1,18525,4),
+    # 这个是mask loss
     loss_m = self.lincomb_mask_loss(pos_bool, anchor_max_i, coef_p, proto_p, mask_gt, anchor_max_gt)
     # seg_p = (1,80,68,68), mask_gt (2,544,544), class_gt [0, 38]
+    # 这个是segment loss
     loss_s = self.semantic_seg_loss(seg_p, mask_gt, class_gt)
     return loss_c, loss_b, loss_m, loss_s
 
